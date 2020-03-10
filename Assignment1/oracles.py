@@ -84,32 +84,35 @@ class LogRegL2Oracle(BaseSmoothOracle):
         self.matmat_ATsA = matmat_ATsA
         self.b = b
         self.regcoef = regcoef
-        self.Ax = None
-        self.x1 = None
+        
+        self.Ax_0 = None
+        self.x_0 = None
 
     def func(self, x):
         # TODO: Implement
-        self.x1 = x
-        self.Ax = self.matvec_Ax(x)
-        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Ax))) + self.regcoef / 2 * np.linalg.norm(x) ** 2
+        self.x_0 = x
+        self.Ax_0 = self.matvec_Ax(x)
+        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Ax_0))) + self.regcoef / 2 * np.linalg.norm(x) ** 2
         return res
-        #return np.mean(np.logaddexp(np.zeros(self.b.shape), -self.b * self.matvec_Ax(x))) + self.regcoef / 2 * np.linalg.norm(x) ** 2
 
     def grad(self, x):
         # TODO: Implement
-#        return -(self.matvec_ATx(scipy.special.expit(-self.b * self.matvec_Ax(x)) * self.b)).T / self.b.size + self.regcoef * x
-        if type(self.Ax) is type(None):
-            self.Ax = self.matvec_Ax(x)
-        z = np.multiply(-self.b, self.Ax)
+        if self.x_0 is not None and (x == self.x_0).all():
+            Ax = self.Ax_0
+        else:
+            Ax = self.matvec_Ax(x)
+        z = np.multiply(-self.b, Ax)
         z = scipy.special.expit(z)
         z = np.multiply(z, self.b)
         return -(self.matvec_ATx(z)).T / self.b.size + self.regcoef * x
 
     def hess(self, x):
         # TODO: Implement
-        if type(self.Ax) is type(None):
-            self.Ax = self.matvec_Ax(x)
-        z = np.multiply(-self.b, self.Ax)
+        if self.x_0 is not None and (x == self.x_0).all():
+            Ax = self.Ax_0
+        else:
+            Ax = self.matvec_Ax(x)
+        z = np.multiply(-self.b, Ax)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
         z = np.multiply(z, self.b)

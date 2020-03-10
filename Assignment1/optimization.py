@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg import LinAlgError
 import scipy
+from scipy.optimize.linesearch import scalar_search_wolfe2 as wolfe
 from datetime import datetime
 from collections import defaultdict
 
@@ -90,7 +91,6 @@ class LineSearchTool(object):
         alpha = previous_alpha
         
         if self._method == 'Wolfe':
-            wolfe = scipy.optimize.linesearch.scalar_search_wolfe2
             if previous_alpha is None:
                 alpha = self.alpha_0
             
