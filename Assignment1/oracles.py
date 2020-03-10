@@ -85,38 +85,93 @@ class LogRegL2Oracle(BaseSmoothOracle):
         self.b = b
         self.regcoef = regcoef
         
-        self.Ax_0 = None
-        self.x_0 = None
+        self.x_f = None
+        self.Ax_f = None
+        
+        self.x_g = None
+        self.Ax_g = None
+        
+        self.x_h = None
+        self.Ax_h = None
 
+        self.x_fd = None
+        self.alpha_f = None
+        self.d_f = None
+        self.xd_f = None
+        
+        self.x_gd = None
+        self.alpha_g = None
+        self.d_g = None
+        self.xd_g = None
+        
+        self.Ax_fd = None
+        self.Ad_f = None
+        self.Axd_f = None
+        
+        self.Ax_gd = None
+        self.Ad_g = None
+        self.Axd_g = None
+
+    def checkeqs(self,x,x1,Ax1,x2,Ax2,x3,Ax3,x4,Ax4,x5,Ax5):
+        if x1 is not None and (x1 == x).all():
+            return Ax1
+        elif x2 is not None and (x2 == x).all():
+            return Ax2
+        elif x3 is not None and (x3 == x).all():
+            return Ax3
+        elif x4 is not None and (x4 == x).all():
+            return Ax4
+        elif x5 is not None and (x5 == x).all():
+            return Ax5
+        else:
+            return self.matvec_Ax(x)
+        
+    
     def func(self, x):
         # TODO: Implement
-        self.x_0 = x
-        self.Ax_0 = self.matvec_Ax(x)
-        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Ax_0))) + self.regcoef / 2 * np.linalg.norm(x) ** 2
+        self.x_f = x
+        """
+        if self.x_g is not None and (self.x_g == x).all():
+            self.Ax_f = self.Ax_g
+        elif self.x_h is not None and (self.x_h == x).all():
+            self.Ax_f = self.Ax_h
+        elif self.x_fd is not None and (self.x_fd == x).all():
+            self.Ax_f = self.Ax_fd
+        elif self.xd_f is not None and (self.xd_f == x).all():
+            self.Ax_f = self.Axd_f
+        elif
+        else:
+            self.Ax_f = self.matvec_Ax(x)
+        """
+        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Ax_f))) + self.regcoef / 2 * np.linalg.norm(x) ** 2
         return res
 
     def grad(self, x):
         # TODO: Implement
-        if self.x_0 is not None and (x == self.x_0).all():
-            Ax = self.Ax_0
+        self.x_g = x
+        if self.x_f is not None and (self.x_f == x).all():
+            self.Ax_g = self.Ax_f
+        elif self.x_h is not None and (self.x_h == x).all():
+            self.Ax_g = self.Ax_h
         else:
-            Ax = self.matvec_Ax(x)
-        z = np.multiply(-self.b, Ax)
+            self.Ax_g = self.matvec_Ax(x)
+        z = np.multiply(-self.b, self.Ax_g)
         z = scipy.special.expit(z)
         z = np.multiply(z, self.b)
-        return -(self.matvec_ATx(z)).T / self.b.size + self.regcoef * x
+        return -(self.matvec_ATx(z)) / self.b.size + self.regcoef * x
 
     def hess(self, x):
         # TODO: Implement
-        if self.x_0 is not None and (x == self.x_0).all():
-            Ax = self.Ax_0
+        self.x_h = x
+        if self.x_f is not None and (self.x_f == x).all():
+            self.Ax_h = self.Ax_f
+        elif self.x_g is not None and (self.x_g == x).all():
+            self.Ax_h = self.Ax_g
         else:
-            Ax = self.matvec_Ax(x)
-        z = np.multiply(-self.b, Ax)
+            self.Ax_h = self.matvec_Ax(x)
+        z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
-        z = np.multiply(z, self.b)
-        z = np.multiply(z, self.b)
         A1 = self.matmat_ATsA(z) / self.b.size
         A2 = self.regcoef * np.eye(x.size)
         ANS = A1 + A2
@@ -132,19 +187,7 @@ class LogRegL2OptimizedOracle(LogRegL2Oracle):
     """
     def __init__(self, matvec_Ax, matvec_ATx, matmat_ATsA, b, regcoef):
         super().__init__(matvec_Ax, matvec_ATx, matmat_ATsA, b, regcoef)
-        self.x1 = None
-        self.d1 = None
-        
-        self.x2 = None
-        self.d2 = None
-        
-        self.Ax1 = None
-        self.Ad1 = None
-        self.Axd1 = None
-        
-        self.Ax2 = None
-        self.Ad2 = None
-        self.Axd2 = None
+
 
     def func_directional(self, x, d, alpha):
         self.d1 = d
@@ -197,8 +240,8 @@ class LogRegL2OptimizedOracle(LogRegL2Oracle):
         z = np.multiply(-self.b, self.Axd2)
         z = scipy.special.expit(z)
         z = np.multiply(z, self.b)
-        ans = -(self.matvec_ATx(z)).T / self.b.size + self.regcoef * (x + alpha * d)
-        return ans.dot(d)
+        ans = -z.dot(self.Ad2) / self.b.size + self.regcoef * (x + alpha * d).dot(d)
+        return ans
 
 
 def create_log_reg_oracle(A, b, regcoef, oracle_type='usual'):
