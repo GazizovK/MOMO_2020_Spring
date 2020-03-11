@@ -216,7 +216,9 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
             break
 		
         alpha_k = line_search_tool.line_search(oracle, x_k, d_k)
-		
+        if CE(x_k) or CE(d_k) or CE(f_k) or (alpha_k):
+            message = 'computational_error'
+            break
         x_k = x_k + alpha_k * d_k
     
     if flag == 0:
