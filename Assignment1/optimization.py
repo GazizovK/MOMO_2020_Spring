@@ -102,7 +102,7 @@ class LineSearchTool(object):
                                    c1 = self.c1,
                                    c2 = self.c2)
             
-        elif self._method == 'Armijo':
+        if self._method == 'Armijo' or (self._method == 'Wolfe' and alpha is None):
             if previous_alpha is None:
                 alpha = self.alpha_0
 			
@@ -110,7 +110,7 @@ class LineSearchTool(object):
             while oracle.func_directional(x_k, d_k, alpha) > phi_0 + self.c1 * alpha * oracle.grad_directional(x_k, d_k, 0):
                 alpha = alpha / 2
         
-        elif self._method == 'Constant':
+        if self._method == 'Constant':
             alpha = self.c
    
         return alpha
@@ -191,11 +191,11 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
     
     start_s = datetime.now()
     flag = 0
+    d_0 = -oracle.grad(x_0)
     for i in range(max_iter):
 		#Вычисление значения функции, градиента на k-м шаге. Вычисление градиента в начальной точке.
         f_k = oracle.func(x_k)
         d_k = -oracle.grad(x_k)
-        d_0 = -oracle.grad(x_0)
 		
         if CE(x_k) or CE(d_k) or CE(f_k):
             message = 'computational_error'
@@ -216,7 +216,7 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
             break
 		
         alpha_k = line_search_tool.line_search(oracle, x_k, d_k)
-        if CE(x_k) or CE(d_k) or CE(f_k) or (alpha_k):
+        if CE(x_k) or CE(d_k) or CE(f_k):
             message = 'computational_error'
             break
         x_k = x_k + alpha_k * d_k
