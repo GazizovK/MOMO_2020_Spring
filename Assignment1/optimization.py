@@ -384,7 +384,6 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
         message = 'computational_error'
 	
     if history is not None:
-        print('CHECK')
         print(times)
         history['time'] = times
         print(funcs)
@@ -394,15 +393,15 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
         if x_k.size <= 2:
             print(xargs)
             history['x'] = xargs
-        print('ENDCHECK')
 	
     if display == True:
-        print('DISPLAY')
+        print('---DISPLAY INFO---')
         print(times)
         print(funcs)
         print(norms)
         if x_k.size <= 2:
-            print(xargs)            
+            print(xargs)
+        print('------------------')
                     
     if history is not None:
         history['time'] = times
