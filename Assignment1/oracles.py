@@ -112,7 +112,7 @@ class LogRegL2Oracle(BaseSmoothOracle):
         self.Ad_g = None
         self.Axd_g = None
 
-    def checkeqs(self,x,x1,Ax1,x2,Ax2,x3,Ax3,x4,Ax4,x5,Ax5):
+    def checkeqs(self,x,x1,Ax1,x2,Ax2,x3,Ax3,x4,Ax4,x5,Ax5,x6,Ax6):
         if x1 is not None and (x1 == x).all():
             return Ax1
         elif x2 is not None and (x2 == x).all():
@@ -123,6 +123,8 @@ class LogRegL2Oracle(BaseSmoothOracle):
             return Ax4
         elif x5 is not None and (x5 == x).all():
             return Ax5
+        elif x6 is not None and (x5 == x).all():
+            return Ax6    
         else:
             return self.matvec_Ax(x)
         
@@ -130,6 +132,13 @@ class LogRegL2Oracle(BaseSmoothOracle):
     def func(self, x):
         # TODO: Implement
         self.x_f = x
+        self.Ax_f = self.checkeqs(x,
+                                  self.x_g, self.Ax_g,
+                                  self.x_h, self.Ax_h,
+                                  self.x_fd, self.Ax_fd,
+                                  self.x_gd, self.Ax_gd,
+                                  self.xd_f, self.Axd_f,
+                                  self.xd_g, self.Axd_g)
         """
         if self.x_g is not None and (self.x_g == x).all():
             self.Ax_f = self.Ax_g
@@ -139,7 +148,8 @@ class LogRegL2Oracle(BaseSmoothOracle):
             self.Ax_f = self.Ax_fd
         elif self.xd_f is not None and (self.xd_f == x).all():
             self.Ax_f = self.Axd_f
-        elif
+        elif self.xd_g is not None and (self.xd_g == x).all():
+            self.Ax_f = self.Axd_g
         else:
             self.Ax_f = self.matvec_Ax(x)
         """
@@ -149,12 +159,21 @@ class LogRegL2Oracle(BaseSmoothOracle):
     def grad(self, x):
         # TODO: Implement
         self.x_g = x
+        self.Ax_g = self.checkeqs(x,
+                                  self.x_f, self.Ax_f,
+                                  self.x_h, self.Ax_h,
+                                  self.x_fd, self.Ax_fd,
+                                  self.x_gd, self.Ax_gd,
+                                  self.xd_f, self.Axd_f,
+                                  self.xd_g, self.Axd_g)
+        """
         if self.x_f is not None and (self.x_f == x).all():
             self.Ax_g = self.Ax_f
         elif self.x_h is not None and (self.x_h == x).all():
             self.Ax_g = self.Ax_h
         else:
             self.Ax_g = self.matvec_Ax(x)
+        """
         z = np.multiply(-self.b, self.Ax_g)
         z = scipy.special.expit(z)
         z = np.multiply(z, self.b)
@@ -163,12 +182,21 @@ class LogRegL2Oracle(BaseSmoothOracle):
     def hess(self, x):
         # TODO: Implement
         self.x_h = x
+        self.Ax_h = self.checkeqs(x,
+                                  self.x_f, self.Ax_f,
+                                  self.x_g, self.Ax_g,
+                                  self.x_fd, self.Ax_fd,
+                                  self.x_gd, self.Ax_gd,
+                                  self.xd_f, self.Axd_f,
+                                  self.xd_g, self.Axd_g)
+        """
         if self.x_f is not None and (self.x_f == x).all():
             self.Ax_h = self.Ax_f
         elif self.x_g is not None and (self.x_g == x).all():
             self.Ax_h = self.Ax_g
         else:
             self.Ax_h = self.matvec_Ax(x)
+        """
         z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
@@ -190,57 +218,90 @@ class LogRegL2OptimizedOracle(LogRegL2Oracle):
 
 
     def func_directional(self, x, d, alpha):
-        self.d1 = d
-        self.x1 = x
+        self.d_f = d
+        self.x_fd = x
+        self.xd_f = x + alpha * d
         
-        if self.x2 is not None and (self.x1 == self.x2).all() and \
-           self.d2 is not None and (self.d1 == self.d2).all():
-            self.Ax1 = self.Ax2
-            self.Ad1 = self.Ad2
+        if self.x_gd is not None and (self.x_gd == x).all() and \
+           self.d_g is not None and (self.d_g == d).all():
+            self.Ax_fd = self.Ax_gd
+            self.Ad_f = self.Ad_g
         
-        elif self.x2 is not None and (self.x1 == self.x2).all():
-            self.Ax1 = self.Ax2
-            self.Ad1 = self.matvec_Ax(d)
+        elif self.x_gd is not None and (self.x_gd == x).all():
+            self.Ax_fd = self.Ax_gd
+            self.Ad_f = self.matvec_Ax(d)
+            
+        elif self.x_f is not None and (self.x_f == x).all():
+            self.Ax_fd = self.Ax_f
+            self.Ad_f = self.matvec_Ax(d)
+            
+        elif self.x_g is not None and (self.x_g == x).all():
+            self.Ax_fd = self.Ax_g
+            self.Ad_f = self.matvec_Ax(d)
+            
+        elif self.xd_f is not None and (self.xd_f == x).all():
+            self.Ax_fd = self.Axd_f
+            self.Ad_f = self.matvec_Ax(d)
+            
+        elif self.xd_g is not None and (self.xd_g == x).all():
+            self.Ax_fd = self.Axd_g
+            self.Ad_f = self.matvec_Ax(d)
         
-        elif self.d2 is not None and (self.d1 == self.d2).all():
-            self.Ax1 = self.matvec_Ax(x)
-            self.Ad1 = self.Ad2
+        elif self.d_g is not None and (self.d_g == d).all():
+            self.Ax_fd = self.matvec_Ax(x)
+            self.Ad_f = self.Ad_g
         else:
-            self.Ax1 = self.matvec_Ax(x)
-            self.Ad1 = self.matvec_Ax(d)
+            self.Ax_fd = self.matvec_Ax(x)
+            self.Ad_f = self.matvec_Ax(d)
         
-        self.Axd1 = self.Ax1 + alpha * self.Ad1
+        self.Axd_f = self.Ax_fd + alpha * self.Ad_f
         
-        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Axd1))) + \
-              self.regcoef / 2 * np.linalg.norm(x + alpha * d) ** 2
+        res = np.mean(np.logaddexp(np.zeros(self.b.shape), np.multiply(-self.b, self.Axd_f))) + \
+              self.regcoef / 2 * np.linalg.norm(self.xd_f) ** 2
         return res
 
     def grad_directional(self, x, d, alpha):
         # TODO: Implement optimized version with pre-computation of Ax and Ad
-        self.d2 = d
-        self.x2 = x
-        if self.x1 is not None and (self.x1 == self.x2).all() and \
-           self.d1 is not None and (self.d1 == self.d2).all():
-            self.Ax2 = self.Ax1
-            self.Ad2 = self.Ad1
+        self.d_g = d
+        self.x_gd = x
+        self.xd_g = x + alpha * d
+        if self.x_fd is not None and (self.x_fd == x).all() and \
+           self.d_f is not None and (self.d_f == d).all():
+            self.Ax_gd = self.Ax_fd
+            self.Ad_g = self.Ad_f
         
-        elif self.x1 is not None and (self.x1 == self.x2).all():
-            self.Ax2 = self.Ax1
-            self.Ad2 = self.matvec_Ax(d)
+        elif self.x_fd is not None and (self.x_fd == x).all():
+            self.Ax_gd = self.Ax_fd
+            self.Ad_g = self.matvec_Ax(d)
         
-        elif self.d1 is not None and (self.d1 == self.d2).all():
-            self.Ax2 = self.matvec_Ax(x)
-            self.Ad2 = self.Ad1
+        elif self.x_f is not None and (self.x_f == x).all():
+            self.Ax_gd = self.Ax_f
+            self.Ad_g = self.matvec_Ax(d)
+        
+        elif self.x_g is not None and (self.x_g == x).all():
+            self.Ax_gd = self.Ax_g
+            self.Ad_g = self.matvec_Ax(d)
+            
+        elif self.xd_f is not None and (self.xd_f == x).all():
+            self.Ax_gd = self.Axd_f
+            self.Ad_g = self.matvec_Ax(d)
+            
+        elif self.xd_g is not None and (self.xd_g == x).all():
+            self.Ax_gd = self.Axd_g
+            self.Ad_g = self.matvec_Ax(d)
+        
+        elif self.d_f is not None and (self.d_f == d).all():
+            self.Ax_gd = self.matvec_Ax(x)
+            self.Ad_g = self.Ad_f
         else:
-            self.Ax2 = self.matvec_Ax(x)
-            self.Ad2 = self.matvec_Ax(d)
+            self.Ax_gd = self.matvec_Ax(x)
+            self.Ad_g = self.matvec_Ax(d)
         
-        self.Axd2 = self.Ax2 + alpha * self.Ad2
-        
-        z = np.multiply(-self.b, self.Axd2)
+        self.Axd_g = self.Ax_gd + alpha * self.Ad_g
+        z = np.multiply(-self.b, self.Axd_g)
         z = scipy.special.expit(z)
         z = np.multiply(z, self.b)
-        ans = -z.dot(self.Ad2) / self.b.size + self.regcoef * (x + alpha * d).dot(d)
+        ans = -z.dot(self.Ad_g) / self.b.size + self.regcoef * (self.xd_g).dot(d)
         return ans
 
 
