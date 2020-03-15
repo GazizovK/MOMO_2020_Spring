@@ -191,11 +191,11 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
     
     start_s = datetime.now()
     flag = 0
-    d_0 = -oracle.grad(x_0)
+    d_0 = oracle.grad(x_0)
     for i in range(max_iter):
 		#Вычисление значения функции, градиента на k-м шаге. Вычисление градиента в начальной точке.
         f_k = oracle.func(x_k)
-        d_k = -oracle.grad(x_k)
+        d_k = oracle.grad(x_k)
 		
         if CE(x_k) or CE(d_k) or CE(f_k):
             message = 'computational_error'
@@ -215,15 +215,15 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
             flag = 1
             break
 		
-        alpha_k = line_search_tool.line_search(oracle, x_k, d_k)
+        alpha_k = line_search_tool.line_search(oracle, x_k, -d_k)
         if CE(x_k) or CE(d_k) or CE(f_k):
             message = 'computational_error'
             break
-        x_k = x_k + alpha_k * d_k
+        x_k = x_k - alpha_k * d_k
     
     if flag == 0:
         f_k = oracle.func(x_k)
-        d_k = -oracle.grad(x_k)
+        d_k = oracle.grad(x_k)
 
         if np.sum(np.power(d_k, 2)) > tolerance * np.sum(np.power(d_0, 2)):
             message = 'iterations_exceeded'
@@ -343,7 +343,7 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
           
         try:
             c, low = scipy.linalg.cho_factor(oracle.hess(x_k))
-            d_k = scipy.linalg.cho_solve((c, low), -oracle.grad(x_k))
+            d_k = scipy.linalg.cho_solve((c, low), oracle.grad(x_k))
         except np.linalg.LinAlgError as err:
             message = 'newton_direction_error'
             if np.sum(np.power(grad_k, 2)) <= tolerance * np.sum(np.power(grad_0, 2)):
@@ -362,8 +362,8 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
             flag = 1
             break
         
-        alpha_k = line_search_tool.line_search(oracle, x_k, d_k)        
-        x_k = x_k + alpha_k * d_k
+        alpha_k = line_search_tool.line_search(oracle, x_k, -d_k)        
+        x_k = x_k - alpha_k * d_k
     
     if flag == 0:
         f_k = oracle.func(x_k)
