@@ -321,12 +321,12 @@ def create_log_reg_oracle(A, b, regcoef, oracle_type='usual'):
     def matmat_ATsA(s):
         # TODO: Implement
         z = A.T.dot(np.diag(s.flatten()))
-        print('matmat start')
-        print(z)
+        #print('matmat start')
+        #print(z)
         z = scipy.sparse.csr_matrix(z)
         ans = z.dot(A)
-        print(z.shape, A.shape, ans.shape)
-        print('matmat end')
+        #print(z.shape, A.shape, ans.shape)
+        #print('matmat end')
         return ans
 
     if oracle_type == 'usual':
