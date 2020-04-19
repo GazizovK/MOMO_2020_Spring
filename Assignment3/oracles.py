@@ -222,6 +222,7 @@ class LogRegL2Oracle(BaseSmoothOracle):
         z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
+        z = scipy.sparse.diags(z)
         return self.matvec_ATx(z.dot(self.matvec_Ax(v))) / self.b.size + self.regcoef * v
 
 
@@ -335,6 +336,7 @@ class LogRegL2OptimizedOracle(LogRegL2Oracle):
         z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
+        z = scipy.sparse.diags(z)
         return self.matvec_ATx(z.dot(self.matvec_Ax(v))) / self.b.size + self.regcoef * v
 
 
