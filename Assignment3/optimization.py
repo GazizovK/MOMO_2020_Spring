@@ -144,7 +144,6 @@ def lbfgs(oracle, x_0, tolerance=1e-4, max_iter=500, memory_size=10,
     H = deque()
     x_k = np.copy(x_0)
     i = 0
-    l = 10
 
     # TODO: Implement L-BFGS method.
     # Use line_search_tool.line_search() for adaptive step size.
@@ -186,7 +185,7 @@ def lbfgs(oracle, x_0, tolerance=1e-4, max_iter=500, memory_size=10,
 
         if x_k_prev is not None:
             H.append((x_k - x_k_prev, grad_k - grad_k_prev))
-            if len(H) > l:
+            if len(H) > memory_size:
                 H.popleft()
 
         d_k = lbfgs_direction(grad_k, H)
