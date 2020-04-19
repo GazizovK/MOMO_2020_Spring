@@ -210,6 +210,15 @@ class LogRegL2Oracle(BaseSmoothOracle):
         return ANS
 
     def hess_vec(self, x, v):
+        self.x_h = x
+        self.Ax_h = self.checkeqs(x,
+                                  self.x_f, self.Ax_f,
+                                  self.x_g, self.Ax_g,
+                                  self.x_fd, self.Ax_fd,
+                                  self.x_gd, self.Ax_gd,
+                                  self.xd_f, self.Axd_f,
+                                  self.xd_g, self.Axd_g)
+
         z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
@@ -315,6 +324,14 @@ class LogRegL2OptimizedOracle(LogRegL2Oracle):
         return ans
 
     def hess_vec(self, x, v):
+        self.x_h = x
+        self.Ax_h = self.checkeqs(x,
+                                  self.x_f, self.Ax_f,
+                                  self.x_g, self.Ax_g,
+                                  self.x_fd, self.Ax_fd,
+                                  self.x_gd, self.Ax_gd,
+                                  self.xd_f, self.Axd_f,
+                                  self.xd_g, self.Axd_g)
         z = np.multiply(-self.b, self.Ax_h)
         z = scipy.special.expit(z)
         z = np.multiply(z, (np.ones(self.b.shape) - z))
