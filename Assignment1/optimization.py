@@ -3,6 +3,7 @@ from numpy.linalg import LinAlgError
 import scipy
 from scipy.optimize.linesearch import scalar_search_wolfe2 as wolfe
 from datetime import datetime
+import time
 from collections import defaultdict
 
 def CE(x):
@@ -263,6 +264,12 @@ def gradient_descent(oracle, x_0, tolerance=1e-5, max_iter=10000,
             print(xargs)
     return x_k, message, history
 
+def make_history(history, labels, values):
+    if history is not None:
+        for label, value in zip(labels, values):
+            if label == 'x' and value.size > 2:
+                continue
+            history[label].append(value)
 
 def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
            line_search_options=None, trace=False, display=False):
@@ -315,99 +322,54 @@ def newton(oracle, x_0, tolerance=1e-5, max_iter=100,
        Found optimal point: [ 0.  1.  2.  3.  4.]
     """
     history = defaultdict(list) if trace else None
+    labels = ['time', 'func', 'grad_norm', 'x']
     line_search_tool = get_line_search_tool(line_search_options)
     x_k = np.copy(x_0)
 
     # TODO: Implement Newton's method.
     # Use line_search_tool.line_search() for adaptive step size.
-    
-    times = []
-    funcs = []
-    norms = []
-    xargs = []
-    
-    message = 'success'
-    
-    start_s = datetime.now()
-    flag = 0
-    
- 
+
+    msg = 'success'
+    i = 0
+    start = time.time()
     grad_0 = oracle.grad(x_0)
-    for k in range(max_iter):
-        f_k = oracle.func(x_k) 
-        grad_k = oracle.grad(x_k)
+    grad_k = grad_0.copy()
+    f_k = oracle.func(x_k)
+    alpha_k = None
+
+    while grad_k.dot(grad_k) > tolerance * grad_0.dot(grad_0):
+
+        if i > max_iter:
+            msg = 'iterations exceed'
+            if display:
+                print(msg)
+            return x_k, msg, history
+
+        hist_values = [time.time() - start, f_k, np.linalg.norm(grad_k), x_k]
+        make_history(history, labels, hist_values)
         
         if CE(x_k) or CE(grad_k) or CE(f_k):
-            message = 'computational_error'
-            break
+            msg = 'computational_error'
+            return x_k, msg, history
           
         try:
             c, low = scipy.linalg.cho_factor(oracle.hess(x_k))
-            d_k = scipy.linalg.cho_solve((c, low), oracle.grad(x_k))
-        except np.linalg.LinAlgError as err:
-            message = 'newton_direction_error'
-            if np.sum(np.power(grad_k, 2)) <= tolerance * np.sum(np.power(grad_0, 2)):
-                message = 'success'
-            break
-        end_s = datetime.now()        
-        if history is not None:			
-            funcs.append(f_k)
-            if x_k.size <= 2:
-                xargs.append(x_k)
-            norms.append(np.linalg.norm(grad_k))
-            times.append((end_s - start_s).seconds)
-		
-		#Критерий останова.
-        if np.sum(np.power(grad_k, 2)) <= tolerance * np.sum(np.power(grad_0, 2)):
-            flag = 1
-            break
-        
-        alpha_k = line_search_tool.line_search(oracle, x_k, -d_k)        
+            d_k = scipy.linalg.cho_solve((c, low), grad_k)
+        except np.linalg.LinAlgError:
+            msg = 'newton_direction_error'
+            return x_k, msg, history
+
+        alpha_k = line_search_tool.line_search(oracle, x_k, -d_k, alpha_k)
         x_k = x_k - alpha_k * d_k
-    
-    if flag == 0:
         f_k = oracle.func(x_k)
         grad_k = oracle.grad(x_k)
-        if np.sum(np.power(grad_k, 2)) > tolerance * np.sum(np.power(grad_0, 2)) and message == 'succsess':
-            message = 'iterations_exceeded'
 
-        else:
-            if history is not None:
-                end_s = datetime.now()
-                funcs.append(f_k)
-                if x_k.size <= 2:
-                    xargs.append(x_k)
-                norms.append(np.linalg.norm(grad_k))
-                times.append((end_s - start_s).seconds)
-    
-    if CE(x_k):
-        message = 'computational_error'
-	
-    if history is not None:
-        print(times)
-        history['time'] = times
-        print(funcs)
-        history['func'] = funcs
-        print(norms)
-        history['grad_norm'] = norms
-        if x_k.size <= 2:
-            print(xargs)
-            history['x'] = xargs
-	
-    if display == True:
-        print('---DISPLAY INFO---')
-        print(times)
-        print(funcs)
-        print(norms)
-        if x_k.size <= 2:
-            print(xargs)
-        print('------------------')
-                    
-    if history is not None:
-        history['time'] = times
-        history['func'] = funcs
-        history['grad_norm'] = norms
-        if x_k.size <= 2:
-            history['x'] = xargs
-        
-    return x_k, message, history
+        i += 1
+
+    hist_values = [time.time() - start, f_k, np.linalg.norm(grad_k), x_k]
+    make_history(history, labels, hist_values)
+
+    if display:
+        if history: print(history['func'])
+        print(msg, i)
+    return x_k, msg, history

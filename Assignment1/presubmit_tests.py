@@ -437,7 +437,7 @@ def check_prototype(method):
 def check_one_ideal_step(method):
     oracle = get_quadratic()
     x0 = np.ones(3) * 10.0
-    x_star, msg, history = method(oracle, x0, max_iter=1, tolerance=1e-5, trace=True)
+    x_star, msg, history = method(oracle, x0, max_iter=1, tolerance=1e-5, trace=True, display=True)
     ok_(np.allclose(x_star, [1.0, 2.0, 3.0]))
     eq_(msg, 'success')
     check_equal_histories(
