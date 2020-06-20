@@ -314,7 +314,7 @@ def proximal_fast_gradient_method(oracle, x_0, L_0=1.0, tolerance=1e-5,
             min_x = np.copy(y_k)
         dual_gap_k = oracle.duality_gap(x_k)
 
-        print('y', oracle.func(y_k))
+        #print('y', oracle.func(y_k))
         k += 1
 
     hist_values = [min_phi, time() - start, dual_gap_k, search_counter]
