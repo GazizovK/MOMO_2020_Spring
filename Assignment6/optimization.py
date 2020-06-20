@@ -143,7 +143,7 @@ def proximal_gradient_method(oracle, x_0, L_0=1, tolerance=1e-5,
     """
     # TODO: implement.
     history = defaultdict(list) if trace else None
-    labels = ['func', 'time', 'duality_gap', 'x']
+    labels = ['func', 'time', 'duality_gap', 'x', 'search_counter']
 
     x_k = np.copy(x_0)
     L_k = L_0
@@ -154,9 +154,10 @@ def proximal_gradient_method(oracle, x_0, L_0=1, tolerance=1e-5,
     msg = 'success'
     start = time()
 
+    search_counter = 0
     while dual_gap_k >= tolerance:
 
-        hist_values = [oracle.func(x_k), time() - start, dual_gap_k, x_k]
+        hist_values = [oracle.func(x_k), time() - start, dual_gap_k, x_k, search_counter]
         make_history(history, labels, hist_values)
 
         if k >= max_iter:
@@ -164,8 +165,9 @@ def proximal_gradient_method(oracle, x_0, L_0=1, tolerance=1e-5,
             if display:
                 print(msg)
             return x_k, msg, history
-
+        search_counter = 0
         while True:
+            search_counter += 1
             y = oracle.prox(x_k - 1.0 / L_k * grad_k, 1.0 / L_k)
             z = f_k + grad_k.dot(y - x_k) + L_k / 2 * (y - x_k).dot(y - x_k) + oracle._h.func(y)
             if oracle.func(y) <= z:
@@ -181,7 +183,7 @@ def proximal_gradient_method(oracle, x_0, L_0=1, tolerance=1e-5,
 
         k += 1
 
-    hist_values = [oracle.func(x_k), time() - start, dual_gap_k, x_k]
+    hist_values = [oracle.func(x_k), time() - start, dual_gap_k, x_k, search_counter]
     make_history(history, labels, hist_values)
 
     if display:
@@ -233,7 +235,7 @@ def proximal_fast_gradient_method(oracle, x_0, L_0=1.0, tolerance=1e-5,
     """
     # TODO: Implement
     history = defaultdict(list) if trace else None
-    labels = ['func', 'time', 'duality_gap']
+    labels = ['func', 'time', 'duality_gap', 'search_counter']
 
     A_k = 0.0
     a_k = None
@@ -252,19 +254,22 @@ def proximal_fast_gradient_method(oracle, x_0, L_0=1.0, tolerance=1e-5,
     min_phi = np.copy(phi_k)
     a_sum = 0.0
     prev_asum = 0.0
+    search_counter = 0
 
     while dual_gap_k > tolerance:
 
-        hist_values = [min_phi, time() - start, dual_gap_k]
+        hist_values = [min_phi, time() - start, dual_gap_k, search_counter]
         make_history(history, labels, hist_values)
-        print('x_k', x_k, 'iter', k, 'f', oracle.func(x_k), 'min', min_phi, 'minx', min_x)
+#        print('x_k', x_k, 'iter', k, 'f', oracle.func(x_k), 'min', min_phi, 'minx', min_x)
         if k >= max_iter:
             msg = 'iterations_exceeded'
             if display:
                 print(msg)
             return x_k, msg, history
 
+        search_counter = 0
         while True:
+            search_counter += 1
             a_k = (1 + np.sqrt(1 + 4 * L_k * A_k)) / (2 * L_k)
             A_k_next = A_k + a_k
             y_k = (A_k * x_k + a_k * v_k) / A_k_next
@@ -312,7 +317,7 @@ def proximal_fast_gradient_method(oracle, x_0, L_0=1.0, tolerance=1e-5,
         print('y', oracle.func(y_k))
         k += 1
 
-    hist_values = [min_phi, time() - start, dual_gap_k]
+    hist_values = [min_phi, time() - start, dual_gap_k, search_counter]
     make_history(history, labels, hist_values)
 
     if display:
